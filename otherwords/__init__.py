@@ -26,18 +26,33 @@ class WordTokenizer():
 		self.word = ''
 		self.word_idx = -1
 
-	def tokenize(self, letters):
+	def _preTokenize(self):
 		self.word = ''
 		self.word_idx = -1
-		idx = 0
+		self.idx = 0		
+
+	def _processChar(self, letter):
+		if self.filter(letter) == '':
+			self.emit()
+		else:
+			if self.word == '':
+				self.word_idx = self.idx
+			self.word += letter
+		self.idx += 1
+
+	def tokenize(self, letters):
+		self._preTokenize()
 		for letter in letters:
-			if self.filter(letter) == '':
-				self.emit()
-			else:
-				if self.word == '':
-					self.word_idx = idx
-				self.word += letter
-			idx += 1
+			self._processChar(letter)
+		self.emit()
+
+	def tokenize_file(self, filename):
+		self._preTokenize()
+		with open(filename, "r") as f:
+			letter = f.read(1)
+			while letter:
+				self._processChar(letter)
+				letter = f.read(1)
 		self.emit()
 
 
@@ -66,13 +81,22 @@ class PhraseTokenizer():
 		self.phrase.append(word)
 		self.phrase_len = new_len
 
-	def tokenize(self, letters):
+	def _tokenize(self, letters, isfilename=False):
 		self.phrase = []
 		self.phrase_idx = []
 		word_token = WordTokenizer(self.on_word)
-		word_token.tokenize(letters)
+		if isfilename:
+			word_token.tokenize_file(letters)
+		else:
+			word_token.tokenize(letters)
 		while(len(self.phrase) > 0):
 			self.emit()
+
+	def tokenize(self, letters):
+		self._tokenize(letters)
+
+	def tokenize_file(self, filename):
+		self._tokenize(filename, isfilename=True)
 
 class PhraseMap():
 	def __init__(self, min_len=0):
@@ -93,7 +117,7 @@ class PhraseMap():
     	
 	def map(self, phrase):
 		cased = [''.join(phr.upper()) for phr in phrase]
-		fanned = [''.join(cased[0:c+1]) for c in range(len(cased) - 1)] 
+		fanned = [''.join(cased[0:c+1]) for c in range(len(cased))] 
 		filtered = [f for f in fanned if len(f) >= self.min]
 		dicts = [self.buildCountedDict(sorted(phr)) for phr in filtered]
 		canon = [self.countedDictToCanon(d) for d in dicts]

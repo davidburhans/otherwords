@@ -52,19 +52,24 @@ def test_phrase_indexer():
 	mapper = PhraseMap(min_len=5)
 
 	expected_keys = [[
-					"E1L1M1O1R1",
-					"E1I1L1M2O1P1R1S1U1",
-					"D1E1I1L2M2O3P1R2S1U1",
-					"D1E1I2L2M2O3P1R2S2T1U1",
+					"ELMOR",
+					"EILM2OPRSU",
+					"DEIL2M2O3PR2SU",
+					"DEI2L2M2O3PR2S2TU",
+					"ADE2I2L2M3O3PR2S2T2U",
 					], [
-					"I1M1P1S1U1",
-					"D1I1L1M1O2P1R1S1U1",
-					"D1I2L1M1O2P1R1S2T1U1",
+					"IMPSU",
+					"DILMO2PRSU",
+					"DI2LMO2PRS2TU",
+					"ADEI2LM2O2PRS2T2U",
 					], [
-					"D1L1O2R1",
-					"D1I1L1O2R1S1T1",
+					"DLO2R",
+					"DILO2RST",
+					"ADEILMO2RST2",
+					], [
+					"AEIMST2",
 					]]
-	expected_idx = [0, 6, 12]
+	expected_idx = [0, 6, 12, 18]
 
 	key_itr = iter(expected_keys)
 	idx_itr = iter(expected_idx)
@@ -84,4 +89,36 @@ def test_phrase_indexer():
 	ti = testIndexer()
 	phraseTokenizer = PhraseTokenizer(ti, max_len=99)
 	phraseTokenizer.tokenize(phrase)
-	assert ti.called == 3
+	assert ti.called == 4
+
+def test_from_file_indexing():
+	filename = "test/lorem.txt"
+
+	class testStore():
+		def __init__(self):
+			self.mapper = PhraseMap(min_len=20)
+			self.store = defaultdict(list)
+
+		def __call__(self, phr, idx):
+			keys = self.mapper.map(phr)
+			for key in keys:
+				self.store[key].append((idx, filename,))
+
+	store = testStore()
+
+	phraseTokenizer = PhraseTokenizer(store, max_len=144)
+	phraseTokenizer.tokenize_file(filename)
+	assert store.store["ADE2I2L2M3O3PR2S2T2U"][0] == (0, filename,)
+
+def test_sqlite_storage():
+	from otherwords.store import SqliteStorage
+	store = SqliteStorage('test.db', min_len=20)
+
+	filename = "test/lorem.txt"
+	store.reset(really=True)
+	store.process_file(filename)
+	import pdb; pdb.set_trace()
+	results = store.find_by_canon("ADE2I2L2M3O3PR2S2T2U")
+	assert results == [(0, filename), (329, filename)]
+	results = store.find('Lorem ipsum dolor sit amet')
+	assert results == [(0, filename), (329, filename)]
