@@ -1,5 +1,7 @@
 from otherwords import WordTokenizer, PhraseTokenizer, PhraseMap
 
+from collections import defaultdict
+
 def test_word_tokenization():
 	phrase = 'Lorem ipsum dolor sit amet'
 	phrase_lst = phrase.split(' ')

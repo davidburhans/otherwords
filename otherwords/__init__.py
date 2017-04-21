@@ -113,12 +113,22 @@ class PhraseMap():
 	    
 	def countedDictToCanon(self, counted):
 		global tokens
-		return ''.join(['%s%d' % (k, v,) for k,v in counted.items() if k in tokens])
-    	
+		canon = ''
+		for k, v in counted.items():
+			if k in tokens:
+				if v > 1:
+					canon += '%s%d' % (k, v,)
+				else:
+					canon += k
+		return canon
+
+	def canonize(self, phr):
+		d = self.buildCountedDict(sorted(phr))
+		return self.countedDictToCanon(d)
+
 	def map(self, phrase):
 		cased = [''.join(phr.upper()) for phr in phrase]
 		fanned = [''.join(cased[0:c+1]) for c in range(len(cased))] 
 		filtered = [f for f in fanned if len(f) >= self.min]
-		dicts = [self.buildCountedDict(sorted(phr)) for phr in filtered]
-		canon = [self.countedDictToCanon(d) for d in dicts]
+		canon = [self.canonize(f) for f in filtered]
 		return canon
