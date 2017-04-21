@@ -119,7 +119,6 @@ def test_sqlite_storage():
 	filename = "test/lorem.txt"
 	store.reset(really=True)
 	store.process_file(filename)
-	import pdb; pdb.set_trace()
 	results = store.find_by_canon("ADE2I2L2M3O3PR2S2T2U")
 	assert results == [(0, filename), (329, filename)]
 	results = store.find('Lorem ipsum dolor sit amet')
