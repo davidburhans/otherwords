@@ -1,4 +1,7 @@
-from otherwords import WordTokenizer, PhraseTokenizer, PhraseMap
+import os
+from otherwords.token import WordTokenizer, PhraseTokenizer
+from otherwords.tools import PhraseMap, DirectoryLoader
+from otherwords.store import SqliteStorage
 
 from collections import defaultdict
 
@@ -113,13 +116,21 @@ def test_from_file_indexing():
 	assert store.store["ADE2I2L2M3O3PR2S2T2U"][0] == (0, filename,)
 
 def test_sqlite_storage():
-	from otherwords.store import SqliteStorage
-	store = SqliteStorage('test.db', min_len=20)
+	store = SqliteStorage(':memory:', min_len=20)
 
-	filename = "test/lorem.txt"
-	store.reset(really=True)
+	filename = os.path.join("test", "lorem.txt")
+	expected_filename = os.path.basename(filename)
 	store.process_file(filename)
 	results = store.find_by_canon("ADE2I2L2M3O3PR2S2T2U")
-	assert results == [(0, filename), (329, filename)]
+	assert results == [(0, expected_filename), (329, expected_filename)]
 	results = store.find('Lorem ipsum dolor sit amet')
-	assert results == [(0, filename), (329, filename)]
+	assert results == [(0, expected_filename), (329, expected_filename)]
+
+def test_directoryloader():
+	store = SqliteStorage('test.db', min_len=20)
+	store.reset(really=True)
+	loader = DirectoryLoader(store)
+	loader.load_directory(os.path.join('test','books'), lambda f: f.lower().endswith('.txt'))
+	assert store.has_processed_file('prideandprejudice.txt')
+	find_results = store.find("‘Well, I’d hardly finished the first verse,’ said the Hatter, ‘when the Queen jumped up and bawled out, “He’s murdering the time! Off with his head!”’")
+	assert find_results is not None
